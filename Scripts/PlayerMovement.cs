@@ -8,29 +8,30 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float movementSpeed;
+    public float attackMoveAdjust;
     public float jumpScale;
     public float jumpSpamTime;
+    public float jumpMoveAdjust;
     public string[] interruptAnimNames;
 
     Rigidbody rigidBody;
-    BoxCollider boxCollider;
     Animator animator;
     float horizontalInputAxis;
     float verticalInputAxis;
     float moveDelta;
-    Vector3 moveDirection;
+    bool pressedJump;
+    Vector3 moveDirectionXZ;
     
     // Initialize any variables or game state before the game starts.
     // Awake is always called before any Start functions. This allows you to order initialization of scripts.
     void Awake()
     {
         rigidBody = GetComponent<Rigidbody>();
-        boxCollider= GetComponent<BoxCollider>();
         animator = GetComponent<Animator>();
 
         horizontalInputAxis = 0.0f;
         verticalInputAxis = 0.0f;
-        moveDirection = Vector3.zero;
+        moveDirectionXZ = Vector3.zero;
         moveDelta = movementSpeed;
     }
 
@@ -41,19 +42,15 @@ public class PlayerMovement : MonoBehaviour
         horizontalInputAxis = Input.GetAxisRaw("Horizontal");
         verticalInputAxis = Input.GetAxisRaw("Vertical");
 
-        // Prevent the faster movement in diagonal.
-        moveDirection = new Vector3(horizontalInputAxis, 0, verticalInputAxis);
-        moveDirection = moveDirection.normalized;
-
         if(!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerAttack.instance.isAttacking == false)
         {
             animator.SetBool("isInAir", true);
-            rigidBody.AddForce(Vector3.up * jumpScale, ForceMode.Impulse);     
+            pressedJump = true;
         }
 
-#region Animation State
+        #region Animation State
         // Check run state.
-        if (Vector3.Magnitude(moveDirection) > 0.0f && PlayerAttack.instance.isAttacking == false)
+        if (Vector3.Magnitude(moveDirectionXZ) > 0.0f && PlayerAttack.instance.isAttacking == false)
         {
             animator.SetBool("isRunning", true);
         }
@@ -85,32 +82,41 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        // 공격 애니메이션 재생 중인 경우 이동 제한.
-        if (IsPlayingAnyInterruptAnims())
-        {
-            moveDelta = movementSpeed / 5.0f;
-        }
-        else
-        {
-            moveDelta = movementSpeed;
-        }
-
-
-        rigidBody.AddForce(moveDirection * moveDelta, ForceMode.Impulse);
-
         // Rotate to movement direction
-        if(Mathf.Abs(horizontalInputAxis) > 0.0f)
+        if (Mathf.Abs(horizontalInputAxis) > 0.0f)
         {
             transform.rotation = Quaternion.LookRotation(Vector3.forward * horizontalInputAxis);
         }
 
+        if (pressedJump)
+        {
+            pressedJump = false;
+            rigidBody.AddForce(Vector3.up * jumpScale, ForceMode.Impulse);
+        }
+
+        // 이동 방향.
+        moveDirectionXZ = new Vector3(horizontalInputAxis, 0, verticalInputAxis);
+
+        // 공격 애니메이션 재생 중인 경우 이동 제한.
+        if (IsPlayingAnyInterruptAnims())
+        {
+            moveDirectionXZ = new Vector3(horizontalInputAxis / attackMoveAdjust, 0, verticalInputAxis / attackMoveAdjust);
+        }
+
+        if(animator.GetBool("isInAir"))
+        {
+            moveDirectionXZ = new Vector3(horizontalInputAxis / jumpMoveAdjust, 0, verticalInputAxis / jumpMoveAdjust);
+        }
+
         // Limit X,Z axis speed.
         Vector3 vXZ = new Vector3(rigidBody.velocity.x, 0.0f, rigidBody.velocity.z);
-        if (Vector3.Magnitude(vXZ) > movementSpeed * movementSpeed)
+        if (Vector3.Magnitude(rigidBody.velocity) > movementSpeed * movementSpeed)
         {
             // Clamped X,Z axis velocity + Jump velocity
             rigidBody.velocity = Vector3.ClampMagnitude(vXZ, movementSpeed) + new Vector3(0, rigidBody.velocity.y, 0);
         }
+
+        rigidBody.AddForce(moveDirectionXZ * movementSpeed, ForceMode.Impulse);
     }
 
     bool IsPlayingAnyInterruptAnims()
