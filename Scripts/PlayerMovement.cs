@@ -42,7 +42,7 @@ public class PlayerMovement : MonoBehaviour
         horizontalInputAxis = Input.GetAxisRaw("Horizontal");
         verticalInputAxis = Input.GetAxisRaw("Vertical");
 
-        if(!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerAttack.instance.isAttacking == false)
+        if(!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerMeleeAttack.instance.isAttacking == false)
         {
             animator.SetBool("isInAir", true);
             pressedJump = true;
@@ -50,7 +50,7 @@ public class PlayerMovement : MonoBehaviour
 
         #region Animation State
         // Check run state.
-        if (Vector3.Magnitude(moveDirectionXZ) > 0.0f && PlayerAttack.instance.isAttacking == false)
+        if (Vector3.Magnitude(moveDirectionXZ) > 0.0f)
         {
             animator.SetBool("isRunning", true);
         }
