@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     public float jumpSpamTime;
     public float jumpMoveAdjust;
     public string[] interruptAnimNames;
+    [SerializeField] private LayerMask layerMasks;
 
     Rigidbody rigidBody;
     Animator animator;
@@ -42,7 +43,17 @@ public class PlayerMovement : MonoBehaviour
         horizontalInputAxis = Input.GetAxisRaw("Horizontal");
         verticalInputAxis = Input.GetAxisRaw("Vertical");
 
-        if(!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerMeleeAttack.instance.isAttacking == false)
+        // 이동 방향.
+        moveDirectionXZ = new Vector3(horizontalInputAxis, 0, verticalInputAxis);
+        // 경사면 방향 계산.
+        CalculateSlopeMovement();
+
+        moveDirectionXZ = moveDirectionXZ.normalized;
+
+        UnityEngine.Debug.Log(animator.GetBool("isInAir"));
+
+        // Jump Input
+        if (!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerMeleeAttack.instance.isAttacking == false)
         {
             animator.SetBool("isInAir", true);
             pressedJump = true;
@@ -94,9 +105,6 @@ public class PlayerMovement : MonoBehaviour
             rigidBody.AddForce(Vector3.up * jumpScale, ForceMode.Impulse);
         }
 
-        // 이동 방향.
-        moveDirectionXZ = new Vector3(horizontalInputAxis, 0, verticalInputAxis);
-
         // 공격 애니메이션 재생 중인 경우 이동 제한.
         if (IsPlayingAnyInterruptAnims())
         {
@@ -128,5 +136,39 @@ public class PlayerMovement : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    void CalculateSlopeMovement()
+    {
+        Vector3 traceStart = Vector3.zero;
+        Vector3 hitPoint = Vector3.zero, surfaceNormal = Vector3.zero, slopeDirection = Vector3.zero;
+
+        // 플레이어가 서 있는 바닥 위치를 계산.
+        RaycastHit hitInfo;
+        if (Physics.Raycast(
+            transform.position,
+            Vector3.down,
+            out hitInfo, 5, ~layerMasks)
+            )
+        {
+            traceStart = hitInfo.point + Vector3.up * 0.01f; // 바닥에서 위로 약간의 오프셋을 더한 위치.
+        }
+
+        UnityEngine.Debug.DrawLine(Vector3.zero, traceStart, Color.blue);
+
+        // 이동 방향 쪽으로 라인 트레이스 수행, 경사면 이동 방향을 계산함.
+        if (Physics.Raycast(
+            traceStart,
+            new Vector3(horizontalInputAxis, 0, verticalInputAxis),
+            out hitInfo, movementSpeed, ~layerMasks)
+            )
+        {
+            hitPoint = hitInfo.point;
+            surfaceNormal = hitInfo.normal;
+            slopeDirection = Vector3.ProjectOnPlane(moveDirectionXZ, surfaceNormal);
+            UnityEngine.Debug.DrawLine(traceStart, hitPoint, Color.red);
+            UnityEngine.Debug.DrawLine(hitPoint, hitPoint + slopeDirection, Color.green);
+            moveDirectionXZ += slopeDirection; // 경사 표면을 따르는 방향을 더해줌. (y 값).
+        }
     }
 }

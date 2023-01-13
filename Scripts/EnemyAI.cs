@@ -25,6 +25,6 @@ public class EnemyAI : MonoBehaviour
     {
         Vector3 direction = target.position - transform.position;   
         transform.rotation = Quaternion.LookRotation(Vector3.forward * direction.x);
-        navMeshAgent.SetDestination(target.position);
+        //navMeshAgent.SetDestination(target.position);
     }
 }
