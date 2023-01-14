@@ -17,7 +17,7 @@ public class PlayerMeleeAttack : MonoBehaviour
     Rigidbody rigidBody;
     Vector3 lookAt;
     int comboStack;
-    bool enemyIsInRange;
+    bool targetIsInRange;
 
     void Awake()
     {
@@ -25,7 +25,7 @@ public class PlayerMeleeAttack : MonoBehaviour
         animator= GetComponent<Animator>();
         rigidBody= GetComponent<Rigidbody>();
         comboStack = 0;
-        enemyIsInRange = false;
+        targetIsInRange = false;
     }
 
     void Update()
@@ -64,10 +64,12 @@ public class PlayerMeleeAttack : MonoBehaviour
     {
         Collider[] colliders = Physics.OverlapBox(transform.position + lookAt * attackBoxOffsetX, attackBoxScale / 2, rigidBody.transform.rotation, ~layerMasks);
 
+        targetIsInRange = false;
         for (int i = 0; i < colliders.Length; i++)
         {
             if (colliders[i].tag == "Enemy")
             {
+                targetIsInRange = true;
                 CustomCharacter character = colliders[i].GetComponent<CustomCharacter>();
                 if (character != null)
                 {
@@ -81,7 +83,7 @@ public class PlayerMeleeAttack : MonoBehaviour
     void OnDrawGizmos()
     {
         //Gizmos.matrix = Matrix4x4.TRS(transform.position + lookAt * attackBoxOffsetX, transform.rotation, attackBoxScale);
-        if(enemyIsInRange) Gizmos.color = Color.green;
+        if(targetIsInRange) Gizmos.color = Color.green;
         else Gizmos.color = Color.red;
         Gizmos.DrawWireCube(transform.position + lookAt * attackBoxOffsetX, attackBoxScale);
     }

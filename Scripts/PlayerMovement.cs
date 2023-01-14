@@ -50,8 +50,6 @@ public class PlayerMovement : MonoBehaviour
 
         moveDirectionXZ = moveDirectionXZ.normalized;
 
-        UnityEngine.Debug.Log(animator.GetBool("isInAir"));
-
         // Jump Input
         if (!animator.GetBool("isInAir") && Input.GetButtonDown("Jump") && PlayerMeleeAttack.instance.isAttacking == false)
         {
@@ -108,12 +106,12 @@ public class PlayerMovement : MonoBehaviour
         // 공격 애니메이션 재생 중인 경우 이동 제한.
         if (IsPlayingAnyInterruptAnims())
         {
-            moveDirectionXZ = new Vector3(horizontalInputAxis / attackMoveAdjust, 0, verticalInputAxis / attackMoveAdjust);
+            moveDirectionXZ = new Vector3(moveDirectionXZ.x / attackMoveAdjust, 0, moveDirectionXZ.z / attackMoveAdjust);
         }
-
+        // 공중에 있는 경우 x,z 속도를 제한함.
         if(animator.GetBool("isInAir"))
         {
-            moveDirectionXZ = new Vector3(horizontalInputAxis / jumpMoveAdjust, 0, verticalInputAxis / jumpMoveAdjust);
+            moveDirectionXZ = new Vector3(moveDirectionXZ.x / jumpMoveAdjust, 0, moveDirectionXZ.z / jumpMoveAdjust);
         }
 
         // Limit X,Z axis speed.
