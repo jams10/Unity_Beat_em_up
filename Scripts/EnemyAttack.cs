@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class EnemyAttack : MonoBehaviour
 {
@@ -42,12 +43,6 @@ public class EnemyAttack : MonoBehaviour
     {
         lookAtVector = Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
 
-        if (enemyCharacter.HasCharacterState(GameCharacter.CharacterStateMask.isDamaged))
-        {
-            rigidBody.AddForce(-lookAtVector * knockBackScale, ForceMode.Impulse);
-            EnterDamaged();
-        }
-
         targetIsInRange = false;
         if (canAttack == true && enemyCharacter.HasCharacterState(attackMask) == false)
         {
@@ -76,14 +71,11 @@ public class EnemyAttack : MonoBehaviour
         {
             if (colliders[i].tag == attackTargetTag)
             {
-                GameCharacter targetCharacter = colliders[i].GetComponent<GameCharacter>();
+                PlayerAttack targetCharacter = colliders[i].GetComponent<PlayerAttack>();
                 if (targetCharacter != null)
                 {
                     targetIsInRange = true;
-                    if (targetCharacter.TakeDamage(ligthAttackDamage))
-                    {
-                        targetCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
-                    }
+                    targetCharacter.TakeDamage(ligthAttackDamage, transform.position, 0);
                 }
             }
         }
@@ -96,9 +88,24 @@ public class EnemyAttack : MonoBehaviour
     #endregion Attack Process Functions
 
     #region Damaged Process Functions
-    void EnterDamaged()
+    public void TakeDamage(int damage, Vector3 attackerPosition, int damageAnimIndex)
     {
-        animator.SetTrigger("isDamaged");
+        if(enemyCharacter.TakeDamage(damage))
+        {
+            enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
+            Vector3 force = new Vector3((transform.position - attackerPosition).normalized.x, 0, 0);
+            if (damageAnimIndex >= 2)
+            {
+                force *= 2.0f;
+                rigidBody.AddForce(Vector3.up, ForceMode.VelocityChange);
+            }
+            rigidBody.AddForce(force * knockBackScale, ForceMode.Impulse);
+            EnterDamaged(damageAnimIndex);
+        }
+    }
+    void EnterDamaged(int damageAnimIndex)
+    {
+        animator.SetTrigger("isDamaged_" + damageAnimIndex);
         enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isStun);
         enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isDamaged);
     }
@@ -107,8 +114,8 @@ public class EnemyAttack : MonoBehaviour
     {
         // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
         enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
-        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
         canAttack = true;
+        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
     }
     #endregion Damaged Process Functions
 

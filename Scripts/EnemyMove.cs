@@ -33,19 +33,26 @@ public class EnemyMove : MonoBehaviour
     void Update()
     {
         lookAtVector = Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
-        
-        if (enemyCharacter.HasCharacterState(moveMask) == false)
-        {
-            MoveToTarget();
-        }
 
-        if (Vector3.SqrMagnitude(transform.position - target.position) > navMeshAgent.stoppingDistance * navMeshAgent.stoppingDistance)
+        if(enemyCharacter.HasCharacterState(moveMask))
         {
-            enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isRunning);
+            navMeshAgent.isStopped = true;
+            navMeshAgent.updatePosition = false;
         }
         else
         {
-            enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isRunning);
+            navMeshAgent.isStopped = false;
+            navMeshAgent.updatePosition = true;
+            MoveToTarget();
+
+            if (Vector3.SqrMagnitude(transform.position - target.position) > navMeshAgent.stoppingDistance * navMeshAgent.stoppingDistance)
+            {
+                enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isRunning);
+            }
+            else
+            {
+                enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isRunning);
+            }
         }
 
         ProcessAnimations();

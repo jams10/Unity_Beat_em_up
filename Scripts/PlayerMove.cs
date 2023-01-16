@@ -10,7 +10,7 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] private float jumpScale;
     [SerializeField] private float jumpCoolDown;
     [SerializeField] private float jumpMoveAdjust;
-    [SerializeField] private float attackMoveAdjust;
+    [SerializeField] private float groundMoveAdjust;
     [SerializeField] private LayerMask layersToIgnore;
 
     Rigidbody rigidBody;
@@ -71,8 +71,6 @@ public class PlayerMove : MonoBehaviour
             moveDirection = Vector3.zero;
         }
 
-        UnityEngine.Debug.Log(playerCharacter.HasCharacterState(GameCharacter.CharacterStateMask.isDamaged));
-
         // 점프 입력.
         if (Input.GetButtonDown("Jump") 
             && playerCharacter.HasCharacterState(jumpMask) == false
@@ -132,7 +130,7 @@ public class PlayerMove : MonoBehaviour
         // 이동 제한.
         if (playerCharacter.HasCharacterState(moveMask)) 
         {
-            moveDirection = new Vector3(moveDirection.x * attackMoveAdjust, 0, moveDirection.z * attackMoveAdjust);
+            moveDirection = new Vector3(moveDirection.x * groundMoveAdjust, 0, moveDirection.z * groundMoveAdjust);
         }
         if (playerCharacter.HasCharacterState(GameCharacter.CharacterStateMask.isInAir)) 
         {

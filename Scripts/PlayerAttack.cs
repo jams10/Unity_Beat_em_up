@@ -43,16 +43,10 @@ public class PlayerAttack : MonoBehaviour
         // 플레이어가 바라보는 방향. transform의 rotation 값은 quaternion 값이므로, 오일러 각으로 변경해 넣어줌.
         lookAtVector = Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
 
-        if (playerCharacter.HasCharacterState(GameCharacter.CharacterStateMask.isDamaged))
-        {
-            rigidBody.AddForce(-lookAtVector * knockBackScale, ForceMode.Impulse);
-            EnterDamaged();
-        }
-
         ProcessAttackInput();
     }
 
-    #region Attack Functions
+    #region Attack Process Functions
     void ProcessAttackInput()
     {
         if (Input.GetButtonDown("Fire1") 
@@ -77,15 +71,11 @@ public class PlayerAttack : MonoBehaviour
         {
             if (colliders[i].tag == attackTargetTag)
             {
-                GameCharacter targetcCharacter = colliders[i].GetComponent<GameCharacter>();
+                EnemyAttack targetcCharacter = colliders[i].GetComponent<EnemyAttack>();
                 if (targetcCharacter != null)
                 {
                     targetIsInRange = true;
-                    // 콤보 스택 넣어서 맨 마지막에 밀리는 효과 넣어도 괜찮을 것 같음.
-                    if (targetcCharacter.TakeDamage(ligthAttackDamage))
-                    {
-                        targetcCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
-                    }
+                    targetcCharacter.TakeDamage(ligthAttackDamage, transform.position, lightAttackComboStack);
                 }
             }
         }
@@ -112,9 +102,20 @@ public class PlayerAttack : MonoBehaviour
         lightAttackComboStack = 0;
         playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
     }
-    #endregion Attack Functions
+    #endregion Attack Process Functions
 
-    void EnterDamaged()
+    #region Damaged Process Functions
+    public void TakeDamage(int damage, Vector3 attackerPosition, int damageAnimIndex)
+    {
+        if (playerCharacter.TakeDamage(damage))
+        {
+            playerCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
+            Vector3 force = (transform.position - attackerPosition).normalized;
+            rigidBody.AddForce(new Vector3(force.x, 0, 0) * knockBackScale, ForceMode.Impulse);
+            EnterDamaged(damageAnimIndex);
+        }
+    }
+    void EnterDamaged(int damageAnimIndex)
     {
         animator.SetTrigger("isDamaged");
         playerCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isStun);
@@ -124,10 +125,10 @@ public class PlayerAttack : MonoBehaviour
     public void ExitDamaged()
     {
         // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
-        isAttacking = false;
-        playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
+        ExitAttack();
         playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
     }
+    #endregion Damaged Process Functions
 
     void OnDrawGizmos()
     {
