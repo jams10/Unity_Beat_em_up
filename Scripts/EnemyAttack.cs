@@ -13,9 +13,12 @@ public class EnemyAttack : MonoBehaviour
     [SerializeField] private Vector3 attackBoxScale;
     [SerializeField] private string attackTargetTag;
     [SerializeField] private LayerMask layersToIgnore;
+    [SerializeField] private AudioClip hitSound;
 
     Animator animator;
     Rigidbody rigidBody;
+    AudioSource audioSource;
+    List<Component> attackTargets;
     GameCharacter enemyCharacter;
     GameCharacter.CharacterStateMask attackMask;
     Vector3 lookAtVector;
@@ -26,6 +29,7 @@ public class EnemyAttack : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rigidBody = GetComponent<Rigidbody>();
+        audioSource = GetComponent<AudioSource>();   
         enemyCharacter = GetComponent<GameCharacter>();
     }
 
@@ -33,10 +37,11 @@ public class EnemyAttack : MonoBehaviour
     {
         targetIsInRange = false;
         canAttack = true;
+        attackTargets= new List<Component>();
         // 공격 제약 조건.
         attackMask = GameCharacter.CharacterStateMask.isAttacking
-            | GameCharacter.CharacterStateMask.isRunning
             | GameCharacter.CharacterStateMask.isDamaged;
+            //| GameCharacter.CharacterStateMask.isRunning
     }
 
     void Update()
@@ -44,11 +49,36 @@ public class EnemyAttack : MonoBehaviour
         lookAtVector = Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
 
         targetIsInRange = false;
-        if (canAttack == true && enemyCharacter.HasCharacterState(attackMask) == false)
+
+        IsTargetInAttackRange();
+
+        if (targetIsInRange == true && canAttack == true && enemyCharacter.HasCharacterState(attackMask) == false)
         {
             EnterAttack();
         }
     }
+
+    #region Helper Functions
+    void IsTargetInAttackRange()
+    {
+        Collider[] colliders = Physics.OverlapBox(transform.position + lookAtVector * attackBoxOffsetX, attackBoxScale / 2, transform.rotation, ~layersToIgnore);
+        attackTargets.Clear();
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i].tag == attackTargetTag)
+            {
+                PlayerAttack targetCharacter = colliders[i].GetComponent<PlayerAttack>();
+                if (targetCharacter != null)
+                {
+                    targetIsInRange = true;
+                    attackTargets.Add(targetCharacter);
+                }
+            }
+        }
+    }
+    #endregion Helper Functions
+
     #region Attack Process Functions
     void EnterAttack()
     {
@@ -60,29 +90,23 @@ public class EnemyAttack : MonoBehaviour
     public void ExitAttack()
     {
         enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
-        Invoke("CanAttack", attackCoolDown);
+        StartCoroutine(CanAttack(attackCoolDown));
     }
 
     public void ProcessAttack()
     {
-        Collider[] colliders = Physics.OverlapBox(transform.position + lookAtVector * attackBoxOffsetX, attackBoxScale / 2, transform.rotation, ~layersToIgnore);
-
-        for (int i = 0; i < colliders.Length; i++)
+        if(targetIsInRange)
         {
-            if (colliders[i].tag == attackTargetTag)
+            foreach(PlayerAttack target in attackTargets)
             {
-                PlayerAttack targetCharacter = colliders[i].GetComponent<PlayerAttack>();
-                if (targetCharacter != null)
-                {
-                    targetIsInRange = true;
-                    targetCharacter.TakeDamage(ligthAttackDamage, transform.position, 0);
-                }
+                target.TakeDamage(ligthAttackDamage, transform.position, 0);
             }
         }
     }
 
-    void CanAttack()
+    IEnumerator CanAttack(float coolDown)
     {
+        yield return new WaitForSeconds(coolDown);  
         canAttack = true;
     }
     #endregion Attack Process Functions
@@ -97,7 +121,7 @@ public class EnemyAttack : MonoBehaviour
             if (damageAnimIndex >= 2)
             {
                 force *= 2.0f;
-                rigidBody.AddForce(Vector3.up, ForceMode.VelocityChange);
+                rigidBody.AddForce(Vector3.up * 1.2f, ForceMode.VelocityChange);
             }
             rigidBody.AddForce(force * knockBackScale, ForceMode.Impulse);
             EnterDamaged(damageAnimIndex);
@@ -106,6 +130,9 @@ public class EnemyAttack : MonoBehaviour
     void EnterDamaged(int damageAnimIndex)
     {
         animator.SetTrigger("isDamaged_" + damageAnimIndex);
+        audioSource.clip = hitSound;
+        audioSource.volume = 0.5f;
+        audioSource.Play();
         enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isStun);
         enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isDamaged);
     }

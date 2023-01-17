@@ -36,13 +36,15 @@ public class EnemyMove : MonoBehaviour
 
         if(enemyCharacter.HasCharacterState(moveMask))
         {
-            navMeshAgent.isStopped = true;
-            navMeshAgent.updatePosition = false;
+            //navMeshAgent.isStopped = true;
+            //navMeshAgent.updatePosition = false;
+            navMeshAgent.enabled = false;
         }
         else
         {
-            navMeshAgent.isStopped = false;
-            navMeshAgent.updatePosition = true;
+            //navMeshAgent.isStopped = false;
+            //navMeshAgent.updatePosition = true;
+            navMeshAgent.enabled = true;
             MoveToTarget();
 
             if (Vector3.SqrMagnitude(transform.position - target.position) > navMeshAgent.stoppingDistance * navMeshAgent.stoppingDistance)

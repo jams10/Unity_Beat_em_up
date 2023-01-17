@@ -79,7 +79,7 @@ public class PlayerMove : MonoBehaviour
             playerCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isInAir);
             pressedJump = true;
             canJump = false;
-            Invoke("CanJump", jumpCoolDown);
+            StartCoroutine(CanJump(jumpCoolDown));
         }
 
         // 캐릭터 이동 상태 업데이트
@@ -183,8 +183,9 @@ public class PlayerMove : MonoBehaviour
         }
     }
     
-    void CanJump()
+    IEnumerator CanJump(float cooldown)
     {
+        yield return new WaitForSeconds(cooldown);
         canJump = true;
     }
 

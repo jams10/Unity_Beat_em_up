@@ -28,7 +28,7 @@ public class GameCharacter : MonoBehaviour
 
     void Update()
     {
-         
+        //Debug.Log(currentHealth);
     }
 
     public bool TakeDamage(int damage)
