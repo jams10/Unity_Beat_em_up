@@ -1,0 +1,215 @@
+Combat 부모 클래스
+
+// 외부 설정 값
+public struct LightAttack
+{
+	int comboCount;
+      int damage;
+}
+
+public struct HeavyAttack
+{
+	int comboCount;
+	int damage;
+}
+
+public struct AttackRangeBox
+{
+	float offsetX;
+	Vector3 scale;
+}
+
+enum AttackType
+{
+	LIGHT_ATTACK,
+	HEAVY_ATTACK,
+};
+
+float attackCooldown;
+float knockBackScale;
+string attackTargetTag;
+LayerMask layersToIgnore;
+
+// 내부 값
+Animator animator;
+Rigidbody rigidBody;
+CustomMovement customMovement; // lookAtVector나 기본 속도, 점프 스케일 등 설정.
+CustomCharacter customCharacter;    // 캐릭터 상태 접근, 변경.
+int currentLightCombo;
+int currentHeavyCombo;
+
+List<GameObject> attackTargets;
+
+bool isCheckingCombo;
+bool canAttack;
+
+AttackType currentAttackType;
+int currentDamage;
+
+StateFlagMask attackStateMask; // 해당 상태일 경우 attack하지 못하도록 설정하는 마스크.
+
+void Start()
+{
+	attackStateMask |= isdamaged, isattacking // ai, 플레이어 둘다 해당되는 마스크. 상속 클래스에서 또 추가.
+}
+
+void Update()
+{
+       canAttack = CheckCanAttack();
+
+
+       if(canAttack)
+	{
+		// 플레이어
+		if(Input.GetButton("Fire1"))
+		{
+			currentAttackType = LIGHT_ATTACK;
+			currentDamage = lightattack.damage;
+		
+
+		}
+
+		if(Input.GetButton("Fire2"))
+		{
+			currentAttackType = HEAVY_ATTACK;
+			currentDamage = heavyattack.damage;
+
+		}
+
+       	// AI
+
+              // 모든 조건이 충족 되는 경우 상태 변경.
+              isCheckingCombo = true; // 플레이어 쪽만.
+              playerCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isAttacking);
+			
+             	DoAttack();
+       }
+}
+
+// 헬퍼 함수
+protected virtual bool CheckCanAttack()
+{
+       // 플레이어 상태 검사.
+	if( playerCharacter.HasCharacterState(attackStateMask) == true) return false;
+
+	// 콤보 체크 중인지 검사. (이건 플레이어 쪽에서 오버라이딩 할 때 추가).
+	if (isCheckingCombo == false) return false;
+
+       // 공격 대상이 범위 안에 있는지 검사.
+       // AI 쪽만 여기서 검사함.
+
+
+}
+
+protected virtual bool CheckTargetIsInRange()
+{
+	 Collider[] colliders = Physics.OverlapBox(transform.position + lookAtVector * attackBoxOffsetX, attackBoxScale / 2, transform.rotation, ~layersToIgnore);
+	
+        attackTargets.Clear();
+        bool targetIsInRange = false;
+	 for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i].tag == attackTargetTag)
+            {
+		      Combat target = colliders[i].GetComponent<Combat>();
+		      if(target!=null)
+		      {
+		      	      targetIsInRange = true;
+                           attackTargets.Add(target);
+	                    
+		      }
+            }
+        }
+	 return targetIsInRange;
+}
+
+// 공격 관련 함수
+protected virtual void DoAttack()
+{
+       foreach(GameObject target in attackTargets)
+	{
+		CustomCharacter character = target.GetComponent<CustomCharacter>();
+		if(character != null && character.TakeDamage(currentDamage) == true)
+		{
+	           enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
+                  Vector3 force = (transform.position - attackerPosition).normalized;
+            	    rigidBody.AddForce(new Vector3(force.x, 0, 0) * knockBackScale, ForceMode.Impulse);
+
+                  int currentComboStack = ...
+                  target.EnterDamaged(currentComboStack, currentAttackType);
+		}
+	}
+}
+
+public void EnterCombo()
+{
+        isCheckingCombo = false;
+
+        switch(currentAttackType)
+	 {
+	 	case LIGHT_ATTACK:
+			if(lightAttackComboStack < maxLightAttacks)	
+				lightAttackComboStack++;
+   			break;
+	 	case HEAVY_ATTACK:
+			if(heavyAttackComboStack < maxheavyAttacks)	
+				heavyAttackComboStack++;
+   			break;
+	 }
+    }
+
+public void ExitCombo()
+{
+        isCheckingCombo = false;
+
+        switch(currentAttackType)
+	 {
+	 	case LIGHT_ATTACK:
+			if(lightAttackComboStack < maxLightAttacks)	
+				lightAttackComboStack = 0;
+   			break;
+	 	case HEAVY_ATTACK:
+			if(heavyAttackComboStack < maxheavyAttacks)	
+				heavyAttackComboStack = 0;
+   			break;
+	 }
+}
+
+public void ExitAttack()
+{
+        isCheckingCombo = false;
+        lightAttackComboStack = 0;
+	 heavyAttackComboStack = 0;
+        playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
+}
+
+// 데미지
+
+    void EnterDamaged(int damageAnimIndex, int attackType)
+    {
+        animator.SetTrigger("isDamaged_" + attackType + "_" + damageAnimIndex);
+        audioSource.clip = hitSound;
+        audioSource.volume = 0.5f;
+        audioSource.Play();
+        customCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isStun);
+        customCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isDamaged);
+    }
+
+
+    public void ExitDamaged()
+    {
+        // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
+        ExitAttack();
+        playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
+    }
+
+
+
+    public void ExitDamaged()
+    {
+        // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
+        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
+        canAttack = true; // 이거 어차피 맞는 시간에 공격 쿨다운 돌지 않을까?
+        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
+    }
+
