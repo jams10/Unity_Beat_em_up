@@ -1,3 +1,51 @@
+// Character 클래스 수정
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public enum StateMask
+{
+    NONE = 0,
+    RUNNING = 1,
+    INAIR = 2,
+    STUNNED = 4,
+    ATTACKING = 8,
+    INVINCIBLE = 16,
+    END = 32,
+}
+
+public class CustomCharacter : MonoBehaviour
+{
+    int stateFlag;
+
+    void Start()
+    {
+        stateFlag = 0;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+    }
+    #region State Functions
+    public bool HasState(StateMask mask)
+    {
+        return (stateFlag & (int)mask) > 0;
+    }
+    public void AddState(StateMask mask)
+    {
+        stateFlag |= (int)mask;
+    }
+    public void RemoveState(StateMask mask)
+    {
+        stateFlag &= (int)~mask;
+    }
+    #endregion State Functions
+}
+
+
+
 // Attack을 따로 빼기 위한 클래스 추가.
 using System.Collections;
 using System.Collections.Generic;
