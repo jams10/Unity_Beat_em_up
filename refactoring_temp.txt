@@ -1,3 +1,114 @@
+// Attack을 따로 빼기 위한 클래스 추가.
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Attack : MonoBehaviour
+{
+    [System.Serializable]
+    public struct RangeBox
+    {
+        public float offsetX;
+        public Vector3 scale;
+    }
+
+    [SerializeField] uint _damage; public uint damage {get { return _damage; } }
+    [SerializeField] uint _damagedAnimIndex; public uint damagedAnimIndex { get { return _damagedAnimIndex; } }
+    [SerializeField] uint _currentComboStack; public uint currentComboStack { get { return _currentComboStack; } }
+    [SerializeField] uint _maxComboStack; public uint maxComboStack { get { return _maxComboStack; } }
+    [SerializeField] float _cooldown; public float cooldown { get { return _cooldown; } }
+    [SerializeField] string _animPrefix; public string animPrefix { get { return _animPrefix; } }
+    [SerializeField] RangeBox _attackRangeBox; public RangeBox attackRangeBox { get { return _attackRangeBox; } }
+
+    public bool IncreaseComboStack()
+    {
+        if (_currentComboStack < _maxComboStack)
+        {
+            _currentComboStack++;
+            return true;
+        }
+        return false;
+    }
+
+    public void ResetComboStack()
+    {
+        _currentComboStack = 0;
+    }
+}
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Combat : MonoBehaviour
+{
+    [SerializeField] List<Attack> attacks;
+
+    Attack currentAttack;
+    List<Attack> atks;
+    // Start is called before the first frame update
+    void Start()
+    {
+        atks = new List<Attack>();
+        foreach(Attack atk in attacks) // 인스턴스화. 바로 프리팹의 값에 접근하는 경우 프리팹 자체의 값이 변경되어 버렸음.
+        {
+            atks.Add(Instantiate(atk, new Vector3(0, 0, 0), Quaternion.identity));
+        }
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if(atks[0] != null && Input.GetKeyDown(KeyCode.A))
+        {
+            currentAttack = atks[0];
+            Print();
+        }
+        if(atks[1] != null && Input.GetKeyDown(KeyCode.S))
+        {
+            currentAttack = atks[1];
+            Print();
+        }
+        if (currentAttack != null && Input.GetKeyDown(KeyCode.Z))
+        {
+            currentAttack.IncreaseComboStack();
+            Print();
+        }
+        if (currentAttack != null && Input.GetKeyDown(KeyCode.M))
+        {
+            currentAttack.ResetComboStack();
+            Print();
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(currentAttack != null)
+        {
+            Gizmos.color = new Color(1, 0, 0, 0.5f);
+            Gizmos.DrawCube(transform.position + new Vector3(currentAttack.attackRangeBox.offsetX, 0, 0), currentAttack.attackRangeBox.scale);
+        }
+    }
+
+    void Print()
+    {
+        Debug.Log(currentAttack.animPrefix);
+        Debug.Log(currentAttack.currentComboStack + " / " + currentAttack.maxComboStack);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 Combat 부모 클래스
 
 // 외부 설정 값
