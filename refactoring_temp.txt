@@ -1,374 +1,73 @@
-// Character 클래스 수정
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-public enum StateMask
+using UnityEngine.InputSystem;
+public class InputSystemTest : MonoBehaviour
 {
-    NONE = 0,
-    RUNNING = 1,
-    INAIR = 2,
-    STUNNED = 4,
-    ATTACKING = 8,
-    INVINCIBLE = 16,
-    END = 32,
-}
+    Animator animator;
 
-public class CustomCharacter : MonoBehaviour
-{
-    int stateFlag;
+    bool isInCharge;
+    bool isReadyToChargeAttack;
+
+    void Awake()
+    {
+        animator = GetComponent<Animator>();
+    }
 
     void Start()
     {
-        stateFlag = 0;
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-    }
-    #region State Functions
-    public bool HasState(StateMask mask)
-    {
-        return (stateFlag & (int)mask) > 0;
-    }
-    public void AddState(StateMask mask)
-    {
-        stateFlag |= (int)mask;
-    }
-    public void RemoveState(StateMask mask)
-    {
-        stateFlag &= (int)~mask;
-    }
-    #endregion State Functions
-}
-
-
-
-// Attack을 따로 빼기 위한 클래스 추가.
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class Attack : MonoBehaviour
-{
-    [System.Serializable]
-    public struct RangeBox
-    {
-        public float offsetX;
-        public Vector3 scale;
+        
     }
 
-    [SerializeField] uint _damage; public uint damage {get { return _damage; } }
-    [SerializeField] uint _damagedAnimIndex; public uint damagedAnimIndex { get { return _damagedAnimIndex; } }
-    [SerializeField] uint _currentComboStack; public uint currentComboStack { get { return _currentComboStack; } }
-    [SerializeField] uint _maxComboStack; public uint maxComboStack { get { return _maxComboStack; } }
-    [SerializeField] float _cooldown; public float cooldown { get { return _cooldown; } }
-    [SerializeField] string _animPrefix; public string animPrefix { get { return _animPrefix; } }
-    [SerializeField] RangeBox _attackRangeBox; public RangeBox attackRangeBox { get { return _attackRangeBox; } }
-
-    public bool IncreaseComboStack()
+    public void LightAttack(InputAction.CallbackContext context)
     {
-        if (_currentComboStack < _maxComboStack)
+        // 탭을 누른 경우.
+        if(context.action.phase == InputActionPhase.Performed)
         {
-            _currentComboStack++;
-            return true;
+            Debug.Log("LightAttack!");
         }
-        return false;
-    }
-
-    public void ResetComboStack()
-    {
-        _currentComboStack = 0;
-    }
-}
-
-
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class Combat : MonoBehaviour
-{
-    [SerializeField] List<Attack> attacks;
-
-    Attack currentAttack;
-    List<Attack> atks;
-    // Start is called before the first frame update
-    void Start()
-    {
-        atks = new List<Attack>();
-        foreach(Attack atk in attacks) // 인스턴스화. 바로 프리팹의 값에 접근하는 경우 프리팹 자체의 값이 변경되어 버렸음.
+        // 0.2초 넘게 키를 누르고 있는 경우(홀드)
+        if(context.action.phase == InputActionPhase.Canceled)
         {
-            atks.Add(Instantiate(atk, new Vector3(0, 0, 0), Quaternion.identity));
+            Debug.Log("InCharge");
+            animator.SetTrigger("IsInCharge");
+            isInCharge = true;
         }
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ChargeAttack(InputAction.CallbackContext context)
     {
-        if(atks[0] != null && Input.GetKeyDown(KeyCode.A))
+        // 주어진 시간 동안 홀드 성공.
+        if (isInCharge && context.action.phase == InputActionPhase.Performed)
         {
-            currentAttack = atks[0];
-            Print();
+            Debug.Log("ChargeComplete");
+            animator.SetTrigger("ReadyToChargeAttack");
+            isReadyToChargeAttack = true;
         }
-        if(atks[1] != null && Input.GetKeyDown(KeyCode.S))
+        // 홀드 중에 키를 떼었을 때.
+        if (isInCharge && context.action.phase == InputActionPhase.Canceled)
         {
-            currentAttack = atks[1];
-            Print();
-        }
-        if (currentAttack != null && Input.GetKeyDown(KeyCode.Z))
-        {
-            currentAttack.IncreaseComboStack();
-            Print();
-        }
-        if (currentAttack != null && Input.GetKeyDown(KeyCode.M))
-        {
-            currentAttack.ResetComboStack();
-            Print();
-        }
-    }
-
-    private void OnDrawGizmos()
-    {
-        if(currentAttack != null)
-        {
-            Gizmos.color = new Color(1, 0, 0, 0.5f);
-            Gizmos.DrawCube(transform.position + new Vector3(currentAttack.attackRangeBox.offsetX, 0, 0), currentAttack.attackRangeBox.scale);
-        }
-    }
-
-    void Print()
-    {
-        Debug.Log(currentAttack.animPrefix);
-        Debug.Log(currentAttack.currentComboStack + " / " + currentAttack.maxComboStack);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-Combat 부모 클래스
-
-// 외부 설정 값
-public struct LightAttack
-{
-	int comboCount;
-      int damage;
-}
-
-public struct HeavyAttack
-{
-	int comboCount;
-	int damage;
-}
-
-public struct AttackRangeBox
-{
-	float offsetX;
-	Vector3 scale;
-}
-
-enum AttackType
-{
-	LIGHT_ATTACK,
-	HEAVY_ATTACK,
-};
-
-float attackCooldown;
-float knockBackScale;
-string attackTargetTag;
-LayerMask layersToIgnore;
-
-// 내부 값
-Animator animator;
-Rigidbody rigidBody;
-CustomMovement customMovement; // lookAtVector나 기본 속도, 점프 스케일 등 설정.
-CustomCharacter customCharacter;    // 캐릭터 상태 접근, 변경.
-int currentLightCombo;
-int currentHeavyCombo;
-
-List<GameObject> attackTargets;
-
-bool isCheckingCombo;
-bool canAttack;
-
-AttackType currentAttackType;
-int currentDamage;
-
-StateFlagMask attackStateMask; // 해당 상태일 경우 attack하지 못하도록 설정하는 마스크.
-
-void Start()
-{
-	attackStateMask |= isdamaged, isattacking // ai, 플레이어 둘다 해당되는 마스크. 상속 클래스에서 또 추가.
-}
-
-void Update()
-{
-       canAttack = CheckCanAttack();
-
-
-       if(canAttack)
-	{
-		// 플레이어
-		if(Input.GetButton("Fire1"))
-		{
-			currentAttackType = LIGHT_ATTACK;
-			currentDamage = lightattack.damage;
-		
-
-		}
-
-		if(Input.GetButton("Fire2"))
-		{
-			currentAttackType = HEAVY_ATTACK;
-			currentDamage = heavyattack.damage;
-
-		}
-
-       	// AI
-
-              // 모든 조건이 충족 되는 경우 상태 변경.
-              isCheckingCombo = true; // 플레이어 쪽만.
-              playerCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isAttacking);
-			
-             	DoAttack();
-       }
-}
-
-// 헬퍼 함수
-protected virtual bool CheckCanAttack()
-{
-       // 플레이어 상태 검사.
-	if( playerCharacter.HasCharacterState(attackStateMask) == true) return false;
-
-	// 콤보 체크 중인지 검사. (이건 플레이어 쪽에서 오버라이딩 할 때 추가).
-	if (isCheckingCombo == false) return false;
-
-       // 공격 대상이 범위 안에 있는지 검사.
-       // AI 쪽만 여기서 검사함.
-
-
-}
-
-protected virtual bool CheckTargetIsInRange()
-{
-	 Collider[] colliders = Physics.OverlapBox(transform.position + lookAtVector * attackBoxOffsetX, attackBoxScale / 2, transform.rotation, ~layersToIgnore);
-	
-        attackTargets.Clear();
-        bool targetIsInRange = false;
-	 for (int i = 0; i < colliders.Length; i++)
-        {
-            if (colliders[i].tag == attackTargetTag)
+            // 홀드 제한 시간을 충족한 경우.
+            if(isReadyToChargeAttack)
             {
-		      Combat target = colliders[i].GetComponent<Combat>();
-		      if(target!=null)
-		      {
-		      	      targetIsInRange = true;
-                           attackTargets.Add(target);
-	                    
-		      }
+                Debug.Log("Charge Attack!");
+                animator.SetTrigger("ChargeCanceled");
+                isReadyToChargeAttack = false;
+                isInCharge = false;
+            }
+            // 홀드 제한 시간을 충족하지 못한 경우.
+            else
+            {
+                Debug.Log("Charge Canceled!");
+                animator.SetTrigger("ChargeCanceled");
+                isInCharge = false;
             }
         }
-	 return targetIsInRange;
-}
-
-// 공격 관련 함수
-protected virtual void DoAttack()
-{
-       foreach(GameObject target in attackTargets)
-	{
-		CustomCharacter character = target.GetComponent<CustomCharacter>();
-		if(character != null && character.TakeDamage(currentDamage) == true)
-		{
-	           enemyCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isDamaged);
-                  Vector3 force = (transform.position - attackerPosition).normalized;
-            	    rigidBody.AddForce(new Vector3(force.x, 0, 0) * knockBackScale, ForceMode.Impulse);
-
-                  int currentComboStack = ...
-                  target.EnterDamaged(currentComboStack, currentAttackType);
-		}
-	}
-}
-
-public void EnterCombo()
-{
-        isCheckingCombo = false;
-
-        switch(currentAttackType)
-	 {
-	 	case LIGHT_ATTACK:
-			if(lightAttackComboStack < maxLightAttacks)	
-				lightAttackComboStack++;
-   			break;
-	 	case HEAVY_ATTACK:
-			if(heavyAttackComboStack < maxheavyAttacks)	
-				heavyAttackComboStack++;
-   			break;
-	 }
     }
-
-public void ExitCombo()
-{
-        isCheckingCombo = false;
-
-        switch(currentAttackType)
-	 {
-	 	case LIGHT_ATTACK:
-			if(lightAttackComboStack < maxLightAttacks)	
-				lightAttackComboStack = 0;
-   			break;
-	 	case HEAVY_ATTACK:
-			if(heavyAttackComboStack < maxheavyAttacks)	
-				heavyAttackComboStack = 0;
-   			break;
-	 }
 }
-
-public void ExitAttack()
-{
-        isCheckingCombo = false;
-        lightAttackComboStack = 0;
-	 heavyAttackComboStack = 0;
-        playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
-}
-
-// 데미지
-
-    void EnterDamaged(int damageAnimIndex, int attackType)
-    {
-        animator.SetTrigger("isDamaged_" + attackType + "_" + damageAnimIndex);
-        audioSource.clip = hitSound;
-        audioSource.volume = 0.5f;
-        audioSource.Play();
-        customCharacter.AddCharacterState(GameCharacter.CharacterStateMask.isStun);
-        customCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isDamaged);
-    }
-
-
-    public void ExitDamaged()
-    {
-        // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
-        ExitAttack();
-        playerCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
-    }
-
-
-
-    public void ExitDamaged()
-    {
-        // 캐릭터가 공격 중에 맞게 되면, 처음으로 돌아가 다시 공격 상태를 체크하기 위해 공격 관련 값들을 초기화 해줌.
-        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isAttacking);
-        canAttack = true; // 이거 어차피 맞는 시간에 공격 쿨다운 돌지 않을까?
-        enemyCharacter.RemoveCharacterState(GameCharacter.CharacterStateMask.isStun);
-    }
-
