@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-enum ItemType
+public enum ItemType
 {
     NONE = 0,
     FOOD = 1,
@@ -15,14 +15,12 @@ enum ItemType
 public class InteractableItem : MonoBehaviour
 {
 
-    bool isTimeToDestroy;
+    protected bool isTimeToDestroy;
     protected int itemType;
-    protected Rigidbody rigidBody;
     protected BoxCollider boxCollider;
 
     protected virtual void Awake()
     {
-        rigidBody = GetComponent<Rigidbody>();
         boxCollider = GetComponent<BoxCollider>();  
     }
 
@@ -39,8 +37,13 @@ public class InteractableItem : MonoBehaviour
         }
     }
 
-    public virtual void Interact(GameObject player)
+    public virtual void Interact(ref CustomCharacter player)
     {
-        Debug.Log("Interactable Item!");
+        
+    }
+
+    public bool IsTypeOf(ItemType type)
+    {
+        return (itemType & (int)type) > 0;
     }
 }

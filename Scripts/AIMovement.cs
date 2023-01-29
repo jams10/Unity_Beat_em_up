@@ -24,7 +24,7 @@ public class AIMovement : MonoBehaviour
     void Start()
     {
         // 이동 제약 조건.
-        moveMask = StateMask.ATTACKING | StateMask.DAMAGED | StateMask.STUNNED;
+        moveMask = StateMask.ATTACKING | StateMask.STUNNED;
     }
 
     // Update is called once per frame

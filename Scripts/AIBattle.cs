@@ -32,7 +32,7 @@ public class AIBattle : Battle
 
         if (character.HasState(stopAttackMask) == false && targetIsInRange)
         {
-            if(heavyAttack != null && heavyAttack.canAttack == true) 
+            if (heavyAttack != null && heavyAttack.canAttack == true)
             {
                 // 공격 상태 추가.
                 character.AddState(StateMask.ATTACKING);
@@ -67,9 +67,9 @@ public class AIBattle : Battle
         StartCoroutine(CanAttack(currentAttack));
     }
 
-    protected override void EnterDamaged(Attack.Unit attackerAttackUnit, Vector3 attackerPosition)
+    protected override void EnterDamaged(in Attack.Unit attackerAttackUnit, in Vector2 knockBackScale, in Vector3 attackerPosition)
     {
-        base.EnterDamaged(attackerAttackUnit, attackerPosition);
+        base.EnterDamaged(attackerAttackUnit, knockBackScale, attackerPosition);
     }
 
     public override void ExitDamaged()
