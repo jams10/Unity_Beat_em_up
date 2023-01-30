@@ -8,7 +8,6 @@ public enum ItemType
     FOOD = 1,
     THROWABLE = 2,
     GUN = 4,
-    GRENADE = 8,
     END = 16,
 }
 
@@ -16,7 +15,7 @@ public class InteractableItem : MonoBehaviour
 {
 
     protected bool isTimeToDestroy;
-    protected int itemType;
+    protected ItemType itemType;
     protected BoxCollider boxCollider;
 
     protected virtual void Awake()
@@ -42,8 +41,8 @@ public class InteractableItem : MonoBehaviour
         
     }
 
-    public bool IsTypeOf(ItemType type)
+    public ItemType GetItemType()
     {
-        return (itemType & (int)type) > 0;
+        return itemType;
     }
 }

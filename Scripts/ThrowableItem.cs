@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ThrowableItem : InteractableItem
 {
@@ -10,7 +11,6 @@ public class ThrowableItem : InteractableItem
     [SerializeField] private Vector2 throwScaleXY;
 
     protected Rigidbody rigidBody;
-    Vector2 throwDirection;
     bool isGrabbed;
     bool canAttack;
 
@@ -22,7 +22,7 @@ public class ThrowableItem : InteractableItem
 
     void Start()
     {
-        itemType = (int)ItemType.THROWABLE;
+        itemType = ItemType.THROWABLE;
         isGrabbed = false;
     }
 
@@ -41,7 +41,6 @@ public class ThrowableItem : InteractableItem
         if (player != null && isGrabbed == false)
         {
             Grab(ref player);
-            isGrabbed = true;
             // GRABBING 상태는 물건을 던지거나 총을 발사하는 버튼이 공격 버튼과 같은 버튼이기 때문에,
             // 상태를 체크해서 상태에 따라 물건을 던지거나 총을 발사하거나 물리 공격을 할 수 있도록 하기 위해 추가함.
             player.AddState(StateMask.GRABBING);
@@ -50,7 +49,6 @@ public class ThrowableItem : InteractableItem
         else if(player != null && isGrabbed == true)
         {
             Drop();
-            isGrabbed = false;
             player.RemoveState(StateMask.GRABBING);
         }
     }
@@ -63,27 +61,42 @@ public class ThrowableItem : InteractableItem
         // 플레이어 트랜스폼을 부모 트랜스폼으로 설정하고, 플레이어 머리 위에 위치 시킴.
         gameObject.transform.SetParent(player.gameObject.transform, false);
         gameObject.transform.localPosition = Vector3.up * grabHeight;
+
+        isGrabbed = true;
     }
 
-    protected void Drop()
+    public void Drop()
+    {
+        DetachFromCharacter();
+        rigidBody.AddForce(new Vector3(0, dropHeight, 0), ForceMode.Impulse);
+
+        isGrabbed = false;
+    }
+
+    public void Throw(in Vector2 lookAtVector, in bool IsRunning)
+    {
+        if (isGrabbed)
+        {
+            Debug.Log(lookAtVector);
+            DetachFromCharacter();
+            // 아이템을 공격 가능한 상태로 만들어줌.
+            canAttack = true;
+            isGrabbed = false;
+            // 달리고 있는 경우 더 빠른 속도로 던지게 함.
+            Vector2 actualScale = throwScaleXY;
+            actualScale.x = IsRunning ? throwScaleXY.x * 1.5f : throwScaleXY.x;
+            rigidBody.AddForce(new Vector3(lookAtVector.x * actualScale.x, lookAtVector.y * actualScale.y, 0), ForceMode.Impulse);
+        }
+    }
+
+    void DetachFromCharacter()
     {
         gameObject.transform.SetParent(null);
         rigidBody.useGravity = true;
         rigidBody.isKinematic = false;
         boxCollider.enabled = true;
-        rigidBody.AddForce(new Vector3(0, dropHeight, 0), ForceMode.Impulse);
     }
 
-    protected void Throw(in Vector2 lookAtVector)
-    {
-        if (isGrabbed)
-        {
-            throwDirection = lookAtVector;
-            // 아이템을 공격 가능한 상태로 만들어줌.
-            canAttack = true;
-            rigidBody.AddForce(new Vector3(throwDirection.x * throwScaleXY.x, throwDirection.y * throwScaleXY.y, 0), ForceMode.Impulse);
-        }
-    }
 
     //protected bool IsCollided()
     //{

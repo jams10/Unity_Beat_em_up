@@ -14,7 +14,7 @@ public class Attack : MonoBehaviour
     public struct Unit // 각 개별 공격에 대한 정보를 담은 구조체.
     {
         public string attackTrigger;  // 공격 시 발생 시킬 애니메이션 트리거 이름.
-        public int stackCount;        // 데미지를 받을 때 증가 시킬 스택 카운트.
+        public int hitStackCount;        // 데미지를 받을 때 증가 시킬 스택 카운트.
     }
     [SerializeField] int _damage; public int damage { get { return _damage; } }
     [SerializeField] uint _currentComboStack; public uint currentComboStack { get { return _currentComboStack; } }

@@ -14,7 +14,8 @@ public class AIBattle : Battle
     {
         base.Start();
 
-        // AI의 경우 각 개별 공격들을 하나의 애니메이션에 합쳐서 넣을 것이기 때문에 한 번 공격 애니메이션을 재생 한 뒤에 다시 재생되지 않도록 함.
+        // AI의 경우 플레이어와 다르게 마지막 공격을 제외한 애니메이션 맨 끝에 EnterCombo를 넣어서 콤보 공격을 이어 나가도록 함.
+        // 이 때, AI의 경우 Update에서 계속 공격을 시도하기 때문에 EnterCombo를 만났을 때 ATTACKING 상태를 제거해서 해당 시점 부터 공격을 이어 나갈 수 있도록 함.
         stopAttackMask |= StateMask.ATTACKING;
 
         lightAttack = Instantiate(lightAttackPrefab);
@@ -30,6 +31,12 @@ public class AIBattle : Battle
 
         targetIsInRange = CheckTargetIsInRange();
 
+        if (character.HasState(StateMask.RUNNING))
+        {
+            ExitCombo();
+            ExitAttack();
+        }
+
         if (character.HasState(stopAttackMask) == false && targetIsInRange)
         {
             if (heavyAttack != null && heavyAttack.canAttack == true)
@@ -37,7 +44,6 @@ public class AIBattle : Battle
                 // 공격 상태 추가.
                 character.AddState(StateMask.ATTACKING);
                 currentAttack = heavyAttack;
-                currentAttack.canAttack = false;
                 animator.SetTrigger(currentAttack.GetCurrentAttackUnit().attackTrigger);
             }
             // else-if가 아닌 if로 할 경우, currentAttack이 lightAttack으로 바뀌어버림에 유의.
@@ -46,15 +52,16 @@ public class AIBattle : Battle
                 // 공격 상태 추가.
                 character.AddState(StateMask.ATTACKING);
                 currentAttack = lightAttack;
-                currentAttack.canAttack = false;
                 animator.SetTrigger(currentAttack.GetCurrentAttackUnit().attackTrigger);
             }
+            Debug.Log(currentAttack.GetCurrentAttackUnit().attackTrigger);
         }
     }
 
     public override void EnterCombo()
     {
         base.EnterCombo();
+        character.RemoveState(StateMask.ATTACKING);
     }
     public override void ExitCombo()
     {
@@ -64,6 +71,8 @@ public class AIBattle : Battle
     public override void ExitAttack()
     {
         base.ExitAttack();
+        // 공격 재사용 대기 시간에 들어감.
+        currentAttack.canAttack = false;
         StartCoroutine(CanAttack(currentAttack));
     }
 
@@ -74,6 +83,7 @@ public class AIBattle : Battle
 
     public override void ExitDamaged()
     {
+        ExitAttack();
         base.ExitDamaged();
     }
 }

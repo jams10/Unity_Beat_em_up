@@ -39,7 +39,7 @@ public class PlayerBattle : Battle
     {
         if(isRootMotionPlaying)
         {
-            rigidBody.AddForce(lookAtVector * currentAttack.rootMotionDeltaX, ForceMode.Impulse);
+            rigidBody.AddForce(character.GetLookAtVector() * currentAttack.rootMotionDeltaX, ForceMode.Impulse);
         }
     }
 
@@ -75,6 +75,9 @@ public class PlayerBattle : Battle
         base.EnterDamaged(attackerAttackUnit, knockBackScale, attackerPosition);
         isGathering = false;
         isReadyToHeavyAttack = false;
+
+        // 아이템 들고 있으면 떨구기.
+        itemInteraction.Drop();
     }
 
     public override void ExitDamaged()
@@ -109,6 +112,8 @@ public class PlayerBattle : Battle
 
     public void Input_GatheringEnergy(InputAction.CallbackContext context)
     {
+        if (character.HasState(stopAttackMask) == true) return;
+
         if (context.action.phase == InputActionPhase.Performed)
         {
             animator.SetTrigger(GatheringTriggerName);
@@ -132,6 +137,7 @@ public class PlayerBattle : Battle
 
     public void Input_HeavyAttack(InputAction.CallbackContext context)
     {
+        if (character.HasState(stopAttackMask) == true) return;
         if (isGathering == false) return;
 
         // 입력 설정에서 넣어준 값 만큼 충분히 키를 홀딩한 경우.

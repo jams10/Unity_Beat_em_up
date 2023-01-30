@@ -16,8 +16,7 @@ public enum StateMask
     INVINCIBLE = 128,
     GATHERING = 256,
     GRABBING = 512,
-    EQUIPPED = 1024,
-    END = 2048,
+    END = 1024,
 }
 
 public class CustomCharacter : MonoBehaviour
@@ -36,11 +35,7 @@ public class CustomCharacter : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // 테스트 목적용 코드
-        if(Input.GetKeyDown(KeyCode.Comma))
-        {
-            currentHealth--;
-        }
+
     }
     #region State Functions
     public bool HasState(StateMask mask)
@@ -76,5 +71,10 @@ public class CustomCharacter : MonoBehaviour
     {
         Debug.Log("health increased!");
         currentHealth = Math.Min(maxHealth, currentHealth + delta);
+    }
+
+    public Vector3 GetLookAtVector()
+    {
+        return Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
     }
 }

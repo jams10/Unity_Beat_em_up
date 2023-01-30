@@ -22,11 +22,11 @@ public class Battle : MonoBehaviour
     protected Rigidbody rigidBody;
     protected SpriteRenderer spriteRenderer;
     protected CustomCharacter character;
+    protected ItemInteraction itemInteraction;
 
     protected StateMask stopAttackMask;
     protected bool isRootMotionPlaying;
     public bool targetIsInRange;
-    public Vector3 lookAtVector;
 
     bool isSpriteFlashing;
     bool hitResetCoroutineRunning;
@@ -40,18 +40,18 @@ public class Battle : MonoBehaviour
         rigidBody = GetComponent<Rigidbody>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         character = GetComponent<CustomCharacter>();
+        itemInteraction = GetComponent<ItemInteraction>();   
     }
 
     protected virtual void Start()
     {
         // 공격을 할 수 없는 경우를 체크하는 데 사용할 state 마스크.
         // 플레이어, AI에 따라 기본 마스크에 조건을 추가함.
-        stopAttackMask = StateMask.DEAD | StateMask.STUNNED | StateMask.DEFENDING;
+        stopAttackMask = StateMask.DEAD | StateMask.STUNNED | StateMask.DEFENDING | StateMask.GRABBING;
     }
 
     protected virtual void Update()
     {
-        lookAtVector = Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.right;
 
         // 무적 상태인 경우 스프라이트 깜빡임 효과 재생.
         if (isSpriteFlashing == false && character.HasState(StateMask.ATTACKING) == false && character.HasState(StateMask.INVINCIBLE) == true)
@@ -68,7 +68,7 @@ public class Battle : MonoBehaviour
     public bool CheckTargetIsInRange()
     {
         Collider[] colliders = Physics.OverlapBox(
-           transform.position + lookAtVector * currentAttack.attackRangeBox.offsetX, 
+           transform.position + character.GetLookAtVector() * currentAttack.attackRangeBox.offsetX, 
            currentAttack.attackRangeBox.scale / 2, 
            transform.rotation, ~layersToIgnore);
 
@@ -122,7 +122,7 @@ public class Battle : MonoBehaviour
     public void DoAttack()
     {
         Collider[] colliders = Physics.OverlapBox(
-            transform.position + lookAtVector * currentAttack.attackRangeBox.offsetX,
+            transform.position + character.GetLookAtVector() * currentAttack.attackRangeBox.offsetX,
             currentAttack.attackRangeBox.scale / 2,
             transform.rotation, ~layersToIgnore);
 
@@ -179,7 +179,7 @@ public class Battle : MonoBehaviour
         if (character != null && character.TakeDamage(currentAttack.damage))
         {
             // 피격 스택을 증가시켜줌. 코루틴을 통해 피격 카운트가 초기화 되기 전 연속해서 피격을 맞을 경우 스택이 쌓이게 됨.
-            currentHitCount += attackerAttackUnit.stackCount;
+            currentHitCount += attackerAttackUnit.hitStackCount;
 
             // 히트 애니메이션 트리거, 맞을 때 경직 효과를 위해 STUN 상태 추가.
             // DAMAGED의 경우 피격 스택을 위해 사용. 공격을 하는 중에 맞을 경우에도 공격 상태를 제거해줌.
@@ -200,7 +200,7 @@ public class Battle : MonoBehaviour
                 character.AddState(StateMask.INVINCIBLE);
                 StartCoroutine(ResetInvincible());
             }
-            
+
             // 피격 카운트 스택에 맞는 애니메이션 트리거 재생.
             animator.SetTrigger(hitAnimTriggerPrefix + currentHitCount);
         }
@@ -233,7 +233,7 @@ public class Battle : MonoBehaviour
             //Gizmos.matrix = Matrix4x4.TRS(transform.position + lookAt * attackBoxOffsetX, transform.rotation, attackBoxScale);
             if (targetIsInRange) Gizmos.color = Color.green;
             else Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(transform.position + lookAtVector * currentAttack.attackRangeBox.offsetX, currentAttack.attackRangeBox.scale);
+            Gizmos.DrawWireCube(transform.position + character.GetLookAtVector() * currentAttack.attackRangeBox.offsetX, currentAttack.attackRangeBox.scale);
         }
     }
     #endregion Debug Functions

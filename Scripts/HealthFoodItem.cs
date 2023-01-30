@@ -8,7 +8,7 @@ public class HealthFoodItem : InteractableItem
 
     void Start()
     {
-        itemType = (int)ItemType.FOOD;
+        itemType = ItemType.FOOD;
     }
 
     protected override void Awake()
