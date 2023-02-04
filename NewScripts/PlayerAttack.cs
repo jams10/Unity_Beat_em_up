@@ -10,6 +10,7 @@ using UnityEngine.InputSystem;
 public class PlayerAttack : MonoBehaviour
 {
     [SerializeField] ComboAttack comboAttackPrefab;
+    [SerializeField] LayerMask layersToAttack;
 
     Animator animator;
 
@@ -29,6 +30,7 @@ public class PlayerAttack : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         playerInput = GetComponent<PlayerInput>();
+        playerState = GetComponent<CharacterState>();
         comboAttack = Instantiate(comboAttackPrefab);
 
         currentAttack = comboAttack;
@@ -38,8 +40,8 @@ public class PlayerAttack : MonoBehaviour
 
     void Update()
     {
-        if (playerInputHasInit == false)
-            InitPlayerInput();
+        //if (playerInputHasInit == false)
+        //    InitPlayerInput();
 
     }
 
@@ -53,25 +55,31 @@ public class PlayerAttack : MonoBehaviour
     public void Anim_EnterAttack()
     {
         playerState.AddState(StateMask.ATTACKING);
+        currentAttack.EnterAttack();
     }
 
     public void Anim_ExitAttack()
     {
         playerState.RemoveState(StateMask.ATTACKING);
+        currentAttack.ExitAttack();
     }
 
     public void Anim_DoAttack()
     {
-        currentAttack.DoAttack(transform.position, Quaternion.Euler(0, gameObject.transform.eulerAngles.y, 0) * Vector3.right);
+        Debug.Log("attack");
+        currentAttack.DoAttack(transform.position, Quaternion.Euler(0, gameObject.transform.eulerAngles.y, 0) * Vector3.right, layersToAttack);
     }
     /* Combo */
+    // 마지막으로 사용할 콤보 애니메이션의 경우에는 EnterCombo를 넣어주면 안됨.
     public void Anim_EnterCombo()
     {
+        Debug.Log("enter combo");
         comboAttack.EnterCombo();
     }
 
     public void Anim_ExitCombo()
     {
+        Debug.Log("exit combo");
         comboAttack.ExitCombo();
     }
     #endregion Animation Event Functions
@@ -89,33 +97,40 @@ public class PlayerAttack : MonoBehaviour
 
     #region Input
     // 입력 이벤트를 추가해주는 함수.
-    void InitPlayerInput()
-    {
-        if (playerInput == null) return;
-        playerInput.actions["ComboAttack"].started += Input_ComboAttack;
-        playerInput.actions["ComboAttack"].performed += Input_ComboAttack;
-        playerInput.actions["ComboAttack"].canceled += Input_ComboAttack;
+    //void InitPlayerInput()
+    //{
+    //    if (playerInput == null) return;
+    //    playerInput.actions["ComboAttack"].started += Input_ComboAttack;
+    //    playerInput.actions["ComboAttack"].performed += Input_ComboAttack;
+    //    playerInput.actions["ComboAttack"].canceled += Input_ComboAttack;
 
-        playerInputHasInit = true;
-    }
+    //    playerInputHasInit = true;
+    //}
 
-    void DisablePlayerInput()
-    {
-        if (playerInput == null) return;
-        playerInput.actions["ComboAttack"].started -= Input_ComboAttack;
-        playerInput.actions["ComboAttack"].performed -= Input_ComboAttack;
-        playerInput.actions["ComboAttack"].canceled -= Input_ComboAttack;
+    //void DisablePlayerInput()
+    //{
+    //    if (playerInput == null) return;
+    //    playerInput.actions["ComboAttack"].started -= Input_ComboAttack;
+    //    playerInput.actions["ComboAttack"].performed -= Input_ComboAttack;
+    //    playerInput.actions["ComboAttack"].canceled -= Input_ComboAttack;
 
-        playerInputHasInit = true;
-    }
+    //    playerInputHasInit = true;
+    //}
 
-    void Input_ComboAttack(InputAction.CallbackContext context)
-    {
-        if (context.action.phase == InputActionPhase.Performed)
-        {
-            currentAttack = comboAttack;
-            comboAttack.DoAnim();
-        }
-    }
+    //void Input_ComboAttack(InputAction.CallbackContext context)
+    //{
+    //    if (context.action.phase == InputActionPhase.Performed)
+    //    {
+    //        currentAttack = comboAttack;
+    //        comboAttack.DoAnim();
+    //    }
+    //}
     #endregion Input
+
+    public void ComboAttack()
+    {
+        currentAttack = comboAttack;
+        comboAttack.DoAnim();
+    }
+
 }

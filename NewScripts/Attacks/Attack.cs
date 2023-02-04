@@ -6,8 +6,11 @@ using UnityEngine;
 // 추상 클래스로 만들어줄 경우, PlayerAttack 클래스에서 Attack 부모 클래스 타입으로 각 자식 클래스를 참조해 관리할 수 없음.
 public class Attack : MonoBehaviour
 {
-    public virtual void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector)
+    public virtual void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector, in LayerMask layersToDetect)
     { }
+
+    public virtual void EnterAttack() { }
+    public virtual void ExitAttack() { }
 
     public virtual void GetRangeBox(in Vector3 lookAtVector, in Vector3 characterPosition, out Vector3 center, out Vector3 size)
     { center = Vector3.zero; size = Vector3.zero; }

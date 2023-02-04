@@ -7,7 +7,6 @@ using UnityEngine;
 public class SingleAttack : Attack
 {
     [SerializeField] AttackSO attack;
-    [SerializeField] LayerMask layersToIgnore;
 
     void Awake()
     {
@@ -17,12 +16,12 @@ public class SingleAttack : Attack
         }
     }
 
-    public override void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector)
+    public override void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector, in LayerMask layersToDetect)
     {
         // AttackSO에 저장된 박스 오프셋, 스케일 값과 레이어 마스크를 사용하여 해당 박스 영역에 대해 콜리젼 체크를 수행함.
         // OverlapBox는 박스의 절반 크기(halfExtent)를 받아주는 것에 유의.
         Vector3 center = characterPosition + attack.areaBoxOffsetX * lookAtVector;
-        Collider[] colliders = Physics.OverlapBox(center, attack.areaBoxScale / 2, Quaternion.identity, ~layersToIgnore);
+        Collider[] colliders = Physics.OverlapBox(center, attack.areaBoxScale / 2, Quaternion.identity, layersToDetect);
 
         foreach (Collider collider in colliders)
         {

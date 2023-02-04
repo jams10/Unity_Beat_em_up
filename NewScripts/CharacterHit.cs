@@ -28,7 +28,7 @@ public class CharacterHit : MonoBehaviour
     CharacterEnergy characterEnergy;
     SpriteRenderer spriteRenderer;
 
-    Coroutine hitTimerCoroutine;
+    Coroutine hitCountTimerCoroutine;
     Coroutine debuffTimerCoroutine;
 
     void Start()
@@ -70,9 +70,19 @@ public class CharacterHit : MonoBehaviour
         animator.SetTrigger(hitAnimTriggerPrefix + currentHitCount);
     }
 
-    public void TakeDebuff()
+    public void TakeDebuff(in DebuffType debuffType, in float effectDuration, in float effectTick)
     {
-
+        switch(debuffType)
+        {
+            case DebuffType.STUN:
+                // 이미 스턴 상태일 경우 그냥 빠져나옴.
+                if (characterState.HasState(StateMask.STUNNED) == true) break;
+                characterState.AddState(StateMask.STUNNED);
+                animator.SetBool("Stun", true);
+                animator.SetTrigger("TakeStun");
+                StartCoroutine(ResetDebuff(StateMask.STUNNED, "Stun", effectDuration));
+                break;
+        }
     }
 
     #region Animation Event Functions
@@ -81,15 +91,18 @@ public class CharacterHit : MonoBehaviour
     {
         // DAMAGED 상태가 활성화 된 동안에 공격을 맞을 경우 피격 횟수가 증가함.
         characterState.AddState(StateMask.DAMAGED);
+        // 피격 애니메이션이 재생 되는 동안 짧은 시간 경직을 위해 스턴 상태 추가.
+        characterState.AddState(StateMask.STUNNED);
 
         // 기존에 피격 코루틴이 돌아가고 있는 경우 중단해줌.
-        if(hitTimerCoroutine != null)
-            StopCoroutine(hitTimerCoroutine);
+        if(hitCountTimerCoroutine != null)
+            StopCoroutine(hitCountTimerCoroutine);
     }
 
     public void Anim_ExitHit()
     {
-        hitTimerCoroutine = StartCoroutine(ResetHitCount());
+        characterState.RemoveState(StateMask.STUNNED);
+        hitCountTimerCoroutine = StartCoroutine(ResetHitCount());
     }
     #endregion Animation Event Functions
 
@@ -106,6 +119,12 @@ public class CharacterHit : MonoBehaviour
         yield return new WaitForSeconds(invincibleDuration);
         spriteRenderer.color = Color.white;
         characterState.RemoveState(StateMask.INVINCIBLE);
+    }
+    IEnumerator ResetDebuff(StateMask state, string trigger, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        characterState.RemoveState(state);
+        animator.SetBool(trigger, false);
     }
     #endregion Coroutines
 }

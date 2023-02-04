@@ -13,15 +13,19 @@ public class ComboAttack : Attack
         public string animTrigger;
     }
 
+    [SerializeField] float attackCooldown;
     [SerializeField] List<AttackUnit> attackUnits;
-
-    [SerializeField] LayerMask layersToIgnore;
 
     Animator animator;
 
     int currentComboCount;
     int maxComboCount;
     bool isCheckingCombo;
+
+    // AI의 경우 공격이 쿨다운에 들어가면 다른 공격을 선택할 수 있도록 쿨다운 중인지 여부를 외부에서 접근할 수 있도록 함.
+    bool _inCooldown; public bool inCoolDown { get { return _inCooldown; } }
+
+    Coroutine cooldownCoroutine;
 
     void Start()
     {
@@ -35,7 +39,12 @@ public class ComboAttack : Attack
 
     public void DoAnim()
     {
-        if (isCheckingCombo == true) return;
+        /*
+         * 공격 애니메이션이 시작 되면 EnterCombo, ExitCombo 호출 사이의 콤보 체크 영역 밖에 있는 경우에는 isCheckingCombo가 true 값이 됨.
+         * 따라서 콤보 영역 밖에 있는 경우에는 다시 공격 버튼을 눌러도 다음 콤보 공격으로 넘어가지 않으며, 콤보 공격 체크 영역 안에 들어올 때 비로소 isCheckingCombo 값이
+         * false가 되기 때문에 공격 버튼을 누르면 다음 콤보 공격 재생을 위한 애니메이션 트리거가 발동됨.
+         */
+        if (isCheckingCombo == true || _inCooldown == true) return;
 
         if (animator != null && attackUnits[currentComboCount].animTrigger != "")
             animator.SetTrigger(attackUnits[currentComboCount].animTrigger);
@@ -43,12 +52,12 @@ public class ComboAttack : Attack
         isCheckingCombo = true;
     }
 
-    public override void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector)
+    public override void DoAttack(in Vector3 characterPosition, in Vector3 lookAtVector, in LayerMask layersToDetect)
     {
         // AttackSO에 저장된 박스 오프셋, 스케일 값과 레이어 마스크를 사용하여 해당 박스 영역에 대해 콜리젼 체크를 수행함.
         // OverlapBox는 박스의 절반 크기(halfExtent)를 받아주는 것에 유의.
         Vector3 center = characterPosition + attackUnits[currentComboCount].attack.areaBoxOffsetX * lookAtVector;
-        Collider[] colliders = Physics.OverlapBox(center, attackUnits[currentComboCount].attack.areaBoxScale / 2, Quaternion.identity, ~layersToIgnore);
+        Collider[] colliders = Physics.OverlapBox(center, attackUnits[currentComboCount].attack.areaBoxScale / 2, Quaternion.identity, layersToDetect);
 
         foreach (Collider collider in colliders)
         {
@@ -56,7 +65,6 @@ public class ComboAttack : Attack
             CharacterHit target = collider.GetComponent<CharacterHit>();
             if (target != null)
             {
-                Debug.Log(currentComboCount);
                 Vector3 knockBackDirection = (target.transform.position - characterPosition).normalized;
                 target.TakeDamage(knockBackDirection,
                     attackUnits[currentComboCount].attack.knockBackScale,
@@ -81,6 +89,18 @@ public class ComboAttack : Attack
         isCheckingCombo = false;
 
         currentComboCount = 0;
+    }
+
+    public override void ExitAttack()
+    {
+        _inCooldown = true;
+        cooldownCoroutine = StartCoroutine(ResetCooldown());
+    }
+
+    IEnumerator ResetCooldown()
+    {
+        yield return new WaitForSeconds(attackCooldown);
+        _inCooldown = false;
     }
 
     public override void GetRangeBox(in Vector3 characterPosition, in Vector3 lookAtVector, out Vector3 center, out Vector3 size)

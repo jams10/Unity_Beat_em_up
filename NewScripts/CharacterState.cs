@@ -15,7 +15,6 @@ public enum StateMask
     INVINCIBLE = 128,
     CHARGING = 256,
     GRABBING = 512,
-    END = 1024,
 }
 
 public class CharacterState : MonoBehaviour
